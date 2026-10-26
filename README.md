@@ -1,82 +1,95 @@
 # LabTrack · Del prompt al despliegue
 
-Proyecto y material del taller de desarrollo de software con agentes de IA. Una bitácora de proyectos y experimentos con frontend, API, autenticación y base de datos.
+LabTrack es una bitácora web de proyectos y experimentos de análisis de datos. Usa HTML, CSS y JavaScript en el navegador, FastAPI como API, SQLAlchemy para la persistencia y PostgreSQL como base de datos.
 
-**Esta carpeta contiene la solución completa de referencia.** Para empezar el ejercicio, el docente distribuye `labtrack-00-inicio.zip`. Si recibiste un ZIP, lee también `ETAPA.md`.
+## Qué hace
 
-## Empieza aquí
+- Autenticación con contraseñas protegidas, sesiones revocables, cookies HttpOnly y protección CSRF.
+- Proyectos con operaciones de creación, consulta, edición y eliminación.
+- Experimentos asociados a proyectos, con modelo, versión del dataset, métrica, valor, notas y estado.
+- Aislamiento por usuario: cada usuario solo puede consultar y modificar sus propios proyectos y experimentos.
+- Filtros exactos por nombre de modelo dentro del proyecto seleccionado.
+- Resumen de proyectos y experimentos propios.
+- Persistencia en PostgreSQL mediante SQLAlchemy y migraciones Alembic.
+- Estados de experimento: `planned`, `completed` y `discarded`.
 
-1. Lee [la guía del taller](docs/01-taller.md).
-2. Elige [ruta básica: Python + SQLite](docs/03-ruta-basica.md) o [ruta avanzada: Docker + PostgreSQL](docs/04-ruta-avanzada.md).
-3. Consulta [requisitos, arquitectura, ERD y API](docs/02-arquitectura.md).
-4. Copia los [prompts por etapa](prompts/README.md), uno por vez.
-5. Comprueba la entrega con [ejercicios y rúbrica](docs/06-ejercicios-evaluacion.md).
+La documentación de requisitos, arquitectura, ERD y API está en [docs/02-arquitectura.md](docs/02-arquitectura.md).
 
-Docentes: [guion de cuatro horas](docs/05-guia-docente.md), [resolución de problemas](docs/07-problemas-frecuentes.md) y [despliegue en un servidor](docs/08-despliegue.md).
+## Inicio recomendado: Docker + PostgreSQL
 
-## Arranque rápido de la solución completa
-
-Abre una terminal **en esta carpeta**, donde están `alembic.ini` y `compose.yaml`. Usa Python 3.11 o superior; recomendamos 3.12. Estos comandos presuponen el entorno virtual activado; la guía básica explica la activación en cada sistema.
+Usa Python 3.11 o superior y Docker Desktop con el motor Linux disponible. Ejecuta los comandos desde la raíz del proyecto.
 
 ```bash
-python -m pip install -r requirements-dev.txt
 python scripts/init_env.py
-python -m alembic upgrade head
-python -m app.cli seed-demo
-python -m uvicorn app.main:create_app --factory --reload --host 127.0.0.1 --port 8010
-```
-
-Abre http://127.0.0.1:8010. Usuarios de ejemplo: `ana@example.com` y `luis@example.com`. La contraseña aleatoria se genera en el campo `DEMO_PASSWORD` del archivo local `.env`. No existe una contraseña compartida dentro del código.
-
-Alternativa con Docker, después de generar `.env`:
-
-```bash
+docker compose config --quiet
 docker compose up -d --build --wait
 docker compose exec app python -m app.cli seed-demo
 ```
 
-## Qué incluye
+Abre [http://127.0.0.1:8010](http://127.0.0.1:8010) en el navegador.
 
-- Frontend en español con formularios, estados vacíos, mensajes y diseño adaptable.
-- FastAPI con documentación interactiva en `/docs` y estado en `/health`.
-- Contraseñas Argon2, sesiones revocables almacenadas en la BD y cookies HttpOnly.
-- Validación de origen y token CSRF para operaciones autenticadas que modifican datos.
-- CRUD de proyectos y experimentos; aislamiento por propietario.
-- Filtro exacto por modelo, resumen real y restricción al eliminar proyectos con experimentos.
-- SQLAlchemy, migraciones Alembic, SQLite y PostgreSQL.
-- Docker Compose con persistencia, healthchecks, migraciones y contenedor sin privilegios.
-- Pruebas automáticas y workflow de GitHub Actions para un repositorio independiente.
+El comando `init_env.py` crea el archivo `.env` local con secretos generados. La contraseña de las cuentas demo se consulta en el valor `DEMO_PASSWORD` de ese archivo local. Nunca subas `.env`, contraseñas, tokens ni cookies a Git.
 
-## Comprobar
+Para detener el despliegue local:
+
+```bash
+docker compose down
+```
+
+El despliegue actual está limitado a `127.0.0.1:8010`. GitHub almacena el código y ejecuta la integración continua; no publica automáticamente la aplicación.
+
+## Migraciones
+
+Alembic mantiene la evolución del esquema:
+
+- `0001_initial`: crea las tablas iniciales de usuarios, sesiones, proyectos y experimentos.
+- `0002_add_experiment_status`: agrega `Experiment.status` sin eliminar experimentos existentes. Las filas anteriores reciben el valor `completed`.
+
+Las migraciones se ejecutan automáticamente en el servicio `migrate` antes de iniciar `app`. Para ejecutar una actualización manual en un entorno preparado:
+
+```bash
+python -m alembic upgrade head
+```
+
+No elimines la base de datos ni el volumen para resolver un error de migración. Conserva los datos y corrige la causa de la migración pendiente.
+
+## Pruebas
+
+Comprobaciones locales:
 
 ```bash
 python -m pytest -q
 python -m ruff check .
 ```
 
-Pruebas en Docker, con bases SQLite y PostgreSQL de prueba aisladas:
+Pruebas aisladas con SQLite y PostgreSQL mediante Docker Compose:
 
 ```bash
 docker compose --profile test run --build --rm tests
 docker compose --profile test stop test-db
 ```
 
-En las etapas incompletas empieza con `python -m pytest tests/test_auth.py -q`. Las pruebas de dominio describen el objetivo y fallan intencionalmente hasta completar el ejercicio.
+La suite cubre autenticación, cierre y revocación de sesión, CSRF, origen permitido, validación, CRUD, permisos entre usuarios, filtros, resumen, persistencia y migraciones repetibles.
 
-## Preparar paquetes para el grupo
+## Reproducibilidad
+
+Una copia limpia desde GitHub debe ejecutar `python scripts/init_env.py` para generar su propio `.env`.
+
+Si se valida una segunda copia en la misma computadora, conviene usar un nombre de proyecto de Docker Compose diferente para aislar sus contenedores, red y volumen PostgreSQL:
 
 ```bash
-python scripts/package_workshop.py
+docker compose -p labtrack-clean up -d --build --wait
+docker compose -p labtrack-clean exec app python -m app.cli seed-demo
 ```
 
-Produce tres ZIP en `dist/`: `00-inicio`, `01-proyectos` y `02-completo`. No incluyen `.env`, bases de datos, entornos virtuales ni contraseñas. Cada participante genera su propia configuración.
+De esta manera la instalación limpia utiliza una base PostgreSQL independiente y comienza únicamente con los datos creados por `seed-demo`; no comparte registros ni secretos con la instalación original.
 
-## Convertirlo en repositorio propio
+## Integración continua
 
-Copia el contenido de un ZIP a una carpeta nueva y crea ahí tu repositorio de GitHub. La carpeta `.github/workflows` debe estar en la raíz de ese repositorio para que CI se ejecute. Dentro del monorepositorio `grades_ai` es solo una plantilla y no modifica sus workflows ni su aplicación.
+GitHub Actions ejecuta CI para Python 3.11 y 3.12. Cada matriz levanta un servicio PostgreSQL de prueba, instala las dependencias, ejecuta Ruff y la suite de pytest, valida la configuración de Docker Compose y construye la imagen de la aplicación.
 
-Los commits y la publicación los realiza el participante o el docente. El material no presupone una URL de GitHub ya creada. Nunca subas `.env`, `data/` o `.venv/`.
+## Arquitectura
 
-## Alcance
+El navegador envía peticiones HTTP y JSON a la API. FastAPI valida los datos y la sesión, aplica los permisos del propietario y delega la persistencia en SQLAlchemy. PostgreSQL conserva los registros entre reinicios del proceso y de los contenedores mientras se mantenga el volumen.
 
-MVP educativo desplegable. No entrena modelos, ejecuta notebooks ni sube archivos. Los resultados demo son sintéticos. El despliegue local está limitado a `127.0.0.1`; la publicación con HTTPS se explica como una etapa adicional. No se ha contratado ni configurado hosting externo.
+El proyecto no ejecuta modelos de aprendizaje automático ni sube archivos: registra resultados y contexto de experimentos para consultarlos posteriormente.
