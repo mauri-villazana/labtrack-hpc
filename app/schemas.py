@@ -4,6 +4,7 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, FiniteFloat, StringConstraints
 
 Name = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=120)]
+ExperimentStatus = Literal["planned", "completed", "discarded"]
 
 
 class Input(BaseModel):
@@ -34,7 +35,7 @@ class ExperimentInput(Input):
     metric_name: Annotated[str, StringConstraints(min_length=1, max_length=60)]
     metric_value: FiniteFloat
     notes: str = Field(default="", max_length=4000)
-    status: Literal["planned", "completed", "discarded"] = "completed"
+    status: ExperimentStatus = "completed"
 
 
 class ExperimentOut(ExperimentInput):

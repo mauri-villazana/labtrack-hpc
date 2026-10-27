@@ -78,6 +78,7 @@ function renderProjects() {
     button.addEventListener("click", async () => {
       selectedId = project.id;
       $("#model-filter").value = "";
+      $("#status-filter").value = "";
       renderProjects();
       try { await loadExperiments(); } catch (error) { notify(error.message); }
     });
@@ -96,9 +97,14 @@ async function loadExperiments() {
   if (!project) return;
   const requestId = project.id;
   const model = $("#model-filter").value.trim();
+  const status = $("#status-filter").value;
+  const filters = new URLSearchParams();
+  if (model) filters.set("model", model);
+  if (status) filters.set("status", status);
+  const query = filters.toString();
   let result;
   try {
-    result = await api(`/projects/${requestId}/experiments${model ? `?model=${encodeURIComponent(model)}` : ""}`);
+    result = await api(`/projects/${requestId}/experiments${query ? `?${query}` : ""}`);
   } catch (error) {
     if (selectedId !== requestId) return;
     $("#experiment-empty h3").textContent = error.status === 501 ? "Siguiente etapa: experimentos" : "No se pudieron cargar los experimentos";

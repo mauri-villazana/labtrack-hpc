@@ -4,7 +4,7 @@ from sqlalchemy import select
 
 from app.models import Experiment, Project, User
 from app.routes.projects import owned_project
-from app.schemas import ExperimentInput, ExperimentOut
+from app.schemas import ExperimentInput, ExperimentOut, ExperimentStatus
 from app.security import get_current_user, get_db
 
 router = APIRouter(tags=["experiments"], dependencies=[Depends(get_current_user)])
@@ -25,6 +25,7 @@ def owned_experiment(db, experiment_id: int, user_id: int) -> Experiment:
 def list_experiments(
     project_id: int,
     model: str | None = None,
+    status: ExperimentStatus | None = None,
     user: User = Depends(get_current_user),
     db=Depends(get_db),
 ):
@@ -32,6 +33,8 @@ def list_experiments(
     statement = select(Experiment).where(Experiment.project_id == project_id)
     if model is not None:
         statement = statement.where(Experiment.model == model)
+    if status is not None:
+        statement = statement.where(Experiment.status == status)
     return db.scalars(statement.order_by(Experiment.id)).all()
 
 

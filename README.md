@@ -8,7 +8,7 @@ LabTrack es una bitácora web de proyectos y experimentos de análisis de datos.
 - Proyectos con operaciones de creación, consulta, edición y eliminación.
 - Experimentos asociados a proyectos, con modelo, versión del dataset, métrica, valor, notas y estado.
 - Aislamiento por usuario: cada usuario solo puede consultar y modificar sus propios proyectos y experimentos.
-- Filtros exactos por nombre de modelo dentro del proyecto seleccionado.
+- Filtros exactos por nombre de modelo y status dentro del proyecto seleccionado; pueden combinarse.
 - Resumen de proyectos y experimentos propios.
 - Persistencia en PostgreSQL mediante SQLAlchemy y migraciones Alembic.
 - Estados de experimento: `planned`, `completed` y `discarded`.

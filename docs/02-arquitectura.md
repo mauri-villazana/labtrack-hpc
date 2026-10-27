@@ -11,7 +11,7 @@
 | RF05 | Validar en el servidor | Rechazar nombre vacío, valor no numérico, NaN e infinito con 422 |
 | RF06 | Conservar relaciones | No crear experimentos en proyectos inexistentes o ajenos |
 | RF07 | Restringir eliminación | Proyecto con experimentos devuelve 409 |
-| RF08 | Filtrar por modelo | Comparación exacta del nombre de modelo dentro del proyecto seleccionado |
+| RF08 | Filtrar por modelo y estado | Comparación exacta del nombre de modelo y del estado dentro del proyecto seleccionado |
 | RF09 | Resumen real | Contadores cambian al crear y borrar registros propios |
 | RNF01 | Persistencia | Los datos sobreviven al reinicio del proceso o recreación de contenedores |
 | RNF02 | Reproducibilidad | Una carpeta recién extraída arranca con las instrucciones |
@@ -87,13 +87,13 @@ Tablas de soporte: `auth_sessions` guarda el hash del token de sesión, usuario,
 | GET | `/api/projects` | 200, lista de proyectos propios |
 | POST | `/api/projects` | 201, proyecto creado |
 | GET / PUT / DELETE | `/api/projects/{id}` | 200 / 200 / 204 sobre un proyecto propio |
-| GET | `/api/projects/{id}/experiments?model=RandomForest` | 200, experimentos del proyecto; filtro opcional exacto |
+| GET | `/api/projects/{id}/experiments?model=RandomForest&status=planned` | 200, experimentos del proyecto; filtros opcionales exactos por modelo y estado |
 | POST | `/api/projects/{id}/experiments` | 201, experimento creado |
 | GET / PUT / DELETE | `/api/experiments/{id}` | 200 / 200 / 204 sobre un experimento propio |
 | GET | `/api/summary` | 200, cantidades de proyectos y experimentos propios |
 | GET | `/health` | 200 si puede consultar la BD; 503 si no |
 
-`PUT` envía todos los campos del formulario. No hay `PATCH`. Un proyecto recibe `name` y `description`. Un experimento recibe `name`, `model`, `dataset_version`, `metric_name`, `metric_value`, `notes` y `status`. `status` solo admite `planned`, `completed` o `discarded`, y por defecto es `completed`. Los campos desconocidos se rechazan. El navegador no decide el `user_id` ni envía `project_id` dentro del cuerpo.
+`PUT` envía todos los campos del formulario. No hay `PATCH`. Un proyecto recibe `name` y `description`. Un experimento recibe `name`, `model`, `dataset_version`, `metric_name`, `metric_value`, `notes` y `status`. `status` solo admite `planned`, `completed` o `discarded`, y por defecto es `completed`. La consulta de experimentos acepta `model` y `status` opcionales; si se envían ambos, deben cumplirse los dos filtros. Los campos desconocidos se rechazan. El navegador no decide el `user_id` ni envía `project_id` dentro del cuerpo.
 
 Ejemplo de experimento:
 

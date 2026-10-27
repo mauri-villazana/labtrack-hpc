@@ -48,6 +48,50 @@ def test_crud_filters_summary_and_deletion_rule(authenticated):
     assert client.get("/api/summary").json() == {"projects": 0, "experiments": 0}
 
 
+def test_experiment_filters_by_status_and_model(authenticated):
+    project_id = create_project(authenticated)
+    experiments = [
+        {**EXPERIMENT, "name": "Planned RF", "status": "planned"},
+        {**EXPERIMENT, "name": "Completed RF", "status": "completed"},
+        {
+            **EXPERIMENT,
+            "name": "Discarded SVM",
+            "model": "SVM",
+            "status": "discarded",
+        },
+    ]
+    for payload in experiments:
+        assert (
+            authenticated.post(
+                f"/api/projects/{project_id}/experiments", json=payload
+            ).status_code
+            == 201
+        )
+
+    assert len(authenticated.get(f"/api/projects/{project_id}/experiments").json()) == 3
+    assert [item["status"] for item in authenticated.get(
+        f"/api/projects/{project_id}/experiments?status=planned"
+    ).json()] == ["planned"]
+    assert [item["status"] for item in authenticated.get(
+        f"/api/projects/{project_id}/experiments?status=completed"
+    ).json()] == ["completed"]
+    assert [item["status"] for item in authenticated.get(
+        f"/api/projects/{project_id}/experiments?status=discarded"
+    ).json()] == ["discarded"]
+    response = authenticated.get(
+        f"/api/projects/{project_id}/experiments?model=RandomForest&status=planned"
+    )
+    assert [item["name"] for item in response.json()] == ["Planned RF"]
+
+
+def test_invalid_status_filter(authenticated):
+    project_id = create_project(authenticated)
+    response = authenticated.get(
+        f"/api/projects/{project_id}/experiments?status=unknown"
+    )
+    assert response.status_code == 422
+
+
 def test_tenant_isolation_all_operations(authenticated):
     client = authenticated
     project_id = create_project(client)
@@ -60,6 +104,7 @@ def test_tenant_isolation_all_operations(authenticated):
         ("PUT", f"/api/projects/{project_id}", {"name": "Attack"}),
         ("DELETE", f"/api/projects/{project_id}", None),
         ("GET", f"/api/projects/{project_id}/experiments", None),
+        ("GET", f"/api/projects/{project_id}/experiments?status=planned", None),
         ("POST", f"/api/projects/{project_id}/experiments", EXPERIMENT),
         ("GET", f"/api/experiments/{exp_id}", None),
         ("PUT", f"/api/experiments/{exp_id}", EXPERIMENT),
